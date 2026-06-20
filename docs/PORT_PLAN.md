@@ -48,3 +48,11 @@ The intended operating model is laptop-first:
    compute host unless a service is explicitly marked `nas-primary`.
 
 The current Windows launcher implements steps 1-3 for a local laptop boot.
+
+Prefer the regular LAN address for the browser/dashboard:
+
+- `192.168.1.76:28280` - friendly dashboard URL on the normal LAN
+- `192.168.2.51:28280` - direct/10GbE route for NAS-side traffic when useful
+
+The `192.168.1.100+` range is a good future reservation zone for stable service
+IPs once the router/DHCP reservations are set.

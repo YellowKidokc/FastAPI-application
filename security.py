@@ -10,6 +10,7 @@ from config import AUTH_ENABLED, CODEX_TOKEN, MASTER_TOKEN
 
 PUBLIC_PATH_PREFIXES = (
     "/",
+    "/ready",
     "/health",
     "/services",
     "/ports",

@@ -13,10 +13,22 @@ python main.py
 
 Open <http://127.0.0.1:28280/>.
 
+On this machine, use the LAN address first:
+
+<http://192.168.1.76:28280/>
+
+The app still binds to `0.0.0.0`, so it listens on the regular LAN
+(`192.168.1.76`) and the 10GbE/direct adapter (`192.168.2.51`) when Windows
+firewall allows it.
+
 ## Startup launcher
 
 The Windows launcher checks the API first. If it is not alive, it starts
 `main.py` hidden, waits for `/health`, and opens the dashboard.
+
+The launcher no longer assumes `127.0.0.1`. It uses `POF_DASHBOARD_URL` or
+`POF_DASHBOARD_HOST` from `.env`; if those are absent it auto-detects a
+`192.168.1.*` address.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-POF2828.ps1

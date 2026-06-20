@@ -1,7 +1,7 @@
 param(
     [string]$RepoPath = "D:\GitHub\FastAPI-application",
     [string]$ShortcutName = "POF 2828 Dashboard.lnk",
-    [string]$PrimaryUrl = "http://127.0.0.1:28280"
+    [string]$PrimaryUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +17,12 @@ if (-not (Test-Path $launcherPath)) {
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "powershell.exe"
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`" -RepoPath `"$RepoPath`" -PrimaryUrl `"$PrimaryUrl`""
+if ($PrimaryUrl) {
+    $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`" -RepoPath `"$RepoPath`" -PrimaryUrl `"$PrimaryUrl`""
+}
+else {
+    $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`" -RepoPath `"$RepoPath`""
+}
 $shortcut.WorkingDirectory = $RepoPath
 $shortcut.WindowStyle = 7
 $shortcut.Description = "Start or open the POF 2828 FastAPI dashboard"

@@ -65,6 +65,11 @@ async def _warm_topology() -> None:
     startup_topology = await discover_topology()
 
 
+@app.get("/ready")
+async def ready() -> dict[str, Any]:
+    return {"status": "ready", "master": {"host": APP_HOST, "port": APP_PORT}}
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     service_status = await _service_statuses()
@@ -117,13 +122,12 @@ async def api_assistant(payload: AssistantRequest) -> AssistantResponse:
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard() -> str:
-    statuses = await _service_statuses()
     catalog = service_catalog()
     cards = "".join(
-        f"<article class='card {'up' if item['online'] else 'down'}'><h2>{item['name']}</h2>"
+        f"<article class='card checking' data-port='{item['port']}'><h2>{item['name']}</h2>"
         f"<p>Port {item['port']} | Channel {item['channel']}</p>"
-        f"<strong>{'ONLINE' if item['online'] else 'OFFLINE'}</strong></article>"
-        for item in statuses
+        f"<strong>CHECKING</strong></article>"
+        for item in catalog
     )
     port_rows = "".join(
         f"<tr><td>{item['port']}</td><td>{item['name']}</td><td>{item['domain']}</td>"
@@ -137,7 +141,7 @@ async def dashboard() -> str:
       body {{ font-family: system-ui, sans-serif; margin: 2rem; background: #101820; color: #f7f9fb; }}
       .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }}
       .card {{ border-radius: 8px; padding: 1rem; border: 1px solid #34404d; }}
-      .up {{ background: #12543f; }} .down {{ background: #6f2430; }}
+      .up {{ background: #12543f; }} .down {{ background: #6f2430; }} .checking {{ background: #273443; }}
       .cockpit {{ display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; align-items: start; }}
       .panel {{ border: 1px solid #34404d; border-radius: 8px; padding: 1rem; background: #18232e; }}
       textarea {{ width: 100%; min-height: 110px; resize: vertical; box-sizing: border-box; background: #0d141c; color: #f7f9fb; border: 1px solid #34404d; border-radius: 8px; padding: .75rem; font: inherit; }}
@@ -166,17 +170,38 @@ async def dashboard() -> str:
           answerEl.textContent = 'Assistant request failed: ' + error;
         }}
       }});
+      async function refreshServices() {{
+        try {{
+          const response = await fetch('/services');
+          const services = await response.json();
+          for (const service of services) {{
+            const card = document.querySelector(`[data-port="${{service.port}}"]`);
+            if (!card) continue;
+            card.classList.remove('up', 'down', 'checking');
+            card.classList.add(service.online ? 'up' : 'down');
+            card.querySelector('strong').textContent = service.online ? 'ONLINE' : 'OFFLINE';
+          }}
+        }} catch (error) {{
+          answerEl.textContent = 'Status refresh failed: ' + error;
+        }}
+      }}
+      refreshServices();
+      setInterval(refreshServices, 30000);
     </script></body></html>
     """
 
 
+async def _checked_status(service: Any, timeout_seconds: float = 3.0) -> dict[str, Any]:
+    try:
+        online = await asyncio.wait_for(service.check_health(), timeout=timeout_seconds)
+    except Exception:
+        online = False
+    return service.status_payload(bool(online))
+
+
 async def _service_statuses(names: tuple[str, ...] | None = None) -> list[dict[str, Any]]:
     services = [service for service in SERVICES if names is None or service.name in names]
-    statuses = await asyncio.gather(*(service.check_health() for service in services), return_exceptions=True)
-    return [
-        service.status_payload(bool(status) if not isinstance(status, Exception) else False)
-        for service, status in zip(services, statuses)
-    ]
+    return await asyncio.gather(*(_checked_status(service) for service in services))
 
 
 def _port_status(port: int, statuses: list[dict[str, Any]]) -> dict[str, Any]:
