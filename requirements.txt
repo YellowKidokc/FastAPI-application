@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+aiohttp
+asyncpg
+aiosqlite
+psycopg2-binary
+websockets
+pydantic
