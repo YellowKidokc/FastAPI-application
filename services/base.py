@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, FastAPI, Request, Response
 
-from config import REQUEST_TIMEOUT_SECONDS
+from config import PORTS, REQUEST_TIMEOUT_SECONDS
 from discovery import best_route
 
 
@@ -29,17 +29,35 @@ class ServiceBase:
     async def proxy_request(self, path: str, method: str, body: bytes | None = None, headers: dict[str, str] | None = None) -> Response:
         host = await best_route(self.port)
         if not host:
-            return Response(content="null", media_type="application/json", status_code=200)
+            return Response(
+                content=f'{{"detail":"{self.name} is not reachable on port {self.port}"}}',
+                media_type="application/json",
+                status_code=503,
+            )
         url = f"http://{host}:{self.port}/{path.lstrip('/')}"
+        forwarded_headers = {key: value for key, value in (headers or {}).items() if key.lower() != "host"}
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                proxied = await client.request(method, url, content=body, headers=headers)
+                proxied = await client.request(method, url, content=body, headers=forwarded_headers)
             return Response(content=proxied.content, status_code=proxied.status_code, media_type=proxied.headers.get("content-type"))
         except (httpx.HTTPError, OSError, TimeoutError):
-            return Response(content="null", media_type="application/json", status_code=200)
+            return Response(
+                content=f'{{"detail":"{self.name} proxy request failed"}}',
+                media_type="application/json",
+                status_code=502,
+            )
 
     def status_payload(self, online: bool) -> dict[str, Any]:
-        return {"name": self.name, "port": self.port, "channel": self.channel, "online": online}
+        metadata = PORTS.get(self.port, {})
+        return {
+            "name": self.name,
+            "port": self.port,
+            "channel": self.channel,
+            "online": online,
+            "domain": metadata.get("domain"),
+            "owner": metadata.get("owner"),
+            "description": metadata.get("description"),
+        }
 
     def register_routes(self, app: FastAPI) -> None:
         router = APIRouter(prefix=f"/api/{self.name.lower().replace(' ', '-')}", tags=[self.name])

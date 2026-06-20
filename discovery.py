@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from config import HOSTS, PORTS, PREFERRED_ROUTE_ORDER, REQUEST_TIMEOUT_SECONDS, SERVICE_PORTS
+from config import APP_PORT, HOSTS, PORTS, PREFERRED_ROUTE_ORDER, REQUEST_TIMEOUT_SECONDS, SERVICE_PORTS
 
 Topology = dict[str, dict[str, Any]]
 _DISCOVERY_CACHE: Topology = {}
@@ -15,9 +15,10 @@ _DISCOVERY_TTL_SECONDS = 30.0
 
 
 async def _probe(host: str, port: int) -> bool:
+    probe_path = "/openapi.json" if port == APP_PORT else "/health"
     try:
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
-            response = await client.get(f"http://{host}:{port}/health")
+            response = await client.get(f"http://{host}:{port}{probe_path}")
         return response.status_code < 500
     except (httpx.HTTPError, OSError, TimeoutError):
         return False

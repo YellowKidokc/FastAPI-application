@@ -88,6 +88,8 @@ async def get_clips(limit: int = 50, offset: int = 0, search: str | None = None)
 
 
 async def sync_to_postgres() -> None:
+    if not POSTGRES_DSN:
+        return
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
         await conn.close()
@@ -102,6 +104,8 @@ async def sync_loop(interval_seconds: int = 300) -> None:
 
 
 async def _save_clip_postgres(*args: Any) -> None:
+    if not POSTGRES_DSN:
+        return
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
         await conn.execute(

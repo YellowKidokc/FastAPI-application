@@ -7,3 +7,4 @@ aiosqlite
 psycopg2-binary
 websockets
 pydantic
+synology-api
