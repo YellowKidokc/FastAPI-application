@@ -34,7 +34,8 @@ class ClipboardService(StaticService):
     async def poll_windows_clipboard(self) -> None:
         while True:
             try:
-                result = subprocess.run(
+                result = await asyncio.to_thread(
+                    subprocess.run,
                     ["powershell", "-NoProfile", "-Command", "Get-Clipboard"],
                     capture_output=True,
                     text=True,
@@ -82,4 +83,6 @@ class ClipboardService(StaticService):
                 while True:
                     await websocket.receive_text()
             except WebSocketDisconnect:
+                pass
+            finally:
                 self.clients.discard(websocket)

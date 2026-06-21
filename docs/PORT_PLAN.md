@@ -19,8 +19,8 @@ purpose so new APIs have a predictable home.
 | Port | Service | Domain | Owner | Notes |
 | --- | --- | --- | --- | --- |
 | `28280` | Master API | core | laptop-primary | FastAPI orchestrator and dashboard |
-| `28281` | PostgreSQL proxy | storage | nas-preferred | PostgreSQL bridge and persistence checks |
-| `28282` | FIS | core | laptop-primary | Field intelligence service placeholder |
+| `28281` | PostgreSQL proxy | storage | nas-preferred | Legacy PostgreSQL bridge health checks |
+| `28282` | FIS | core | laptop-primary | Planned field intelligence service endpoint |
 | `28283` | NLP Pipeline | intelligence | laptop-primary | Natural-language processing pipeline |
 | `28284` | Dedup daemon | automation | any | Content de-duplication and normalization daemon |
 | `28285` | TTS | media | laptop-primary | Text-to-speech worker |
