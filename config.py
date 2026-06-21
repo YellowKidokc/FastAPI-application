@@ -97,8 +97,8 @@ PORT_RANGES: tuple[PortRange, ...] = (
 
 SERVICE_SPECS: tuple[ServiceSpec, ...] = (
     ServiceSpec("Master API", 28280, "chi", "core", "laptop-primary", "FastAPI orchestrator and dashboard", "/"),
-    ServiceSpec("PostgreSQL proxy", 28281, "G", "storage", "nas-preferred", "Legacy PostgreSQL bridge and persistence checks"),
-    ServiceSpec("FIS", 28282, "M", "core", "laptop-primary", "Field intelligence service placeholder"),
+    ServiceSpec("PostgreSQL proxy", 28281, "G", "storage", "nas-preferred", "Legacy PostgreSQL bridge health checks"),
+    ServiceSpec("FIS", 28282, "M", "core", "laptop-primary", "Planned field intelligence service endpoint"),
     ServiceSpec("NLP Pipeline", 28283, "E", "intelligence", "laptop-primary", "Natural-language processing pipeline"),
     ServiceSpec("Dedup daemon", 28284, "S", "automation", "any", "Content de-duplication and normalization daemon"),
     ServiceSpec("TTS", 28285, "T", "media", "laptop-primary", "Text-to-speech worker"),

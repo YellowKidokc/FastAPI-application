@@ -87,25 +87,43 @@ async def get_clips(limit: int = 50, offset: int = 0, search: str | None = None)
     return [_row_to_clip(row) for row in rows]
 
 
-async def sync_to_postgres() -> None:
+async def check_postgres_connection() -> bool:
     if not POSTGRES_DSN:
-        return
+        return False
+
+    conn: asyncpg.Connection | None = None
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
-        await conn.close()
+        await conn.execute("SELECT 1")
+        return True
     except Exception:
-        return
+        return False
+    finally:
+        if conn is not None:
+            await conn.close()
+
+
+async def sync_to_postgres() -> None:
+    """Backward-compatible no-op health check for the default PostgreSQL DSN.
+
+    Clipboard writes are mirrored in ``_save_clip_postgres``.  This periodic
+    task only verifies the configured default DSN so older imports keep working
+    without implying that a batch sync is happening.
+    """
+    await check_postgres_connection()
 
 
 async def sync_loop(interval_seconds: int = 300) -> None:
     while True:
-        await sync_to_postgres()
+        await check_postgres_connection()
         await asyncio.sleep(interval_seconds)
 
 
 async def _save_clip_postgres(*args: Any) -> None:
     if not POSTGRES_DSN:
         return
+
+    conn: asyncpg.Connection | None = None
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
         await conn.execute(
@@ -120,9 +138,11 @@ async def _save_clip_postgres(*args: Any) -> None:
             "INSERT INTO clips (content, chi_score, vector, tags, compressed, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
             *args,
         )
-        await conn.close()
     except Exception:
         return
+    finally:
+        if conn is not None:
+            await conn.close()
 
 
 def _row_to_clip(row: aiosqlite.Row) -> dict[str, Any]:

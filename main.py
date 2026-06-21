@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Any
 
 from fastapi import FastAPI
@@ -34,11 +34,19 @@ async def lifespan(app: FastAPI):
     clipboard = next((service for service in SERVICES if service.name == "Clipboard"), None)
     if clipboard is not None:
         app.state.clipboard_task = asyncio.create_task(clipboard.poll_windows_clipboard())
-    yield
-    for task_name in ("discovery_task", "sync_task", "clipboard_task"):
-        task = getattr(app.state, task_name, None)
-        if task:
+    try:
+        yield
+    finally:
+        tasks = [
+            task
+            for task_name in ("discovery_task", "sync_task", "clipboard_task")
+            if (task := getattr(app.state, task_name, None)) is not None
+        ]
+        for task in tasks:
             task.cancel()
+        if tasks:
+            with suppress(asyncio.CancelledError):
+                await asyncio.gather(*tasks, return_exceptions=True)
 
 
 app = FastAPI(
